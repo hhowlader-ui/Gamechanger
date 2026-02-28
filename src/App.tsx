@@ -99,10 +99,14 @@ export default function App() {
       const aiData = await aiResponse.json();
       if (!aiResponse.ok) throw new Error(`Gemini Error: ${aiData.error?.message}`);
 
-      // Step 5: Format Data
+      // Step 5: Format Data (with Markdown stripping protection)
       setActiveStep(5);
       let extractedData = {};
-      try { extractedData = JSON.parse(aiData.candidates[0].content.parts[0].text); } 
+      try { 
+        let rawText = aiData.candidates[0].content.parts[0].text;
+        rawText = rawText.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+        extractedData = JSON.parse(rawText); 
+      } 
       catch (e) { throw new Error("Gemini successfully read the document but failed to output a clean table."); }
 
       setResults([{
@@ -121,8 +125,10 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden">
-      <aside className="w-80 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-20">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden">
+      
+      {/* SIDEBAR */}
+      <aside className="w-full md:w-80 shrink-0 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-20">
         <div className="p-8 border-b border-slate-800">
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Liq<span className="text-blue-500">Pro</span></h1>
           <p className="text-xs text-slate-500 mt-2 uppercase tracking-widest font-semibold">Extraction Engine</p>
@@ -141,12 +147,13 @@ export default function App() {
         </div>
       </aside>
 
+      {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col h-screen overflow-y-auto">
-        <div className="max-w-6xl w-full mx-auto p-10 space-y-8">
+        <div className="max-w-6xl w-full mx-auto p-6 md:p-10 space-y-8">
           
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
             <h2 className="text-2xl font-bold text-slate-800 mb-6">New Extraction</h2>
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <input type="text" placeholder="Enter Company Number (e.g., 11969947)" className="flex-1 text-lg p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={companyNumber} onChange={(e) => setCompanyNumber(e.target.value)} disabled={loading} />
               <button onClick={handleExtract} disabled={loading} className={`px-10 py-4 text-lg font-bold text-white rounded-xl shadow-lg transition-all ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/30'}`}>
                 {loading ? 'Processing...' : 'Extract Data'}
@@ -156,12 +163,12 @@ export default function App() {
           </div>
 
           {loading && (
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
               <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Extraction Progress</h3>
               <div className="space-y-4">
                 {steps.map((step, idx) => (
                   <div key={idx} className={`flex items-center gap-4 ${idx > activeStep ? 'opacity-30' : 'opacity-100'} transition-opacity duration-300`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx < activeStep ? 'bg-green-500 text-white' : idx === activeStep ? 'bg-blue-500 text-white animate-pulse' : 'bg-slate-200 text-slate-500'}`}>
+                    <div className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${idx < activeStep ? 'bg-green-500 text-white' : idx === activeStep ? 'bg-blue-500 text-white animate-pulse' : 'bg-slate-200 text-slate-500'}`}>
                       {idx < activeStep ? '✓' : idx + 1}
                     </div>
                     <span className={`text-sm ${idx === activeStep ? 'font-bold text-blue-600' : 'font-medium text-slate-600'}`}>{step}</span>
@@ -207,7 +214,7 @@ export default function App() {
                           <span className="text-slate-400 mr-1">Unsec:</span>{row.hmrc_unsecured}
                         </td>
                         <td className="p-5 font-mono text-slate-600">{row.trade_creditors}</td>
-                        <td className="p-5">
+                        <td className="p-5 whitespace-normal min-w-[200px]">
                           <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-md font-medium text-xs">{row.accountant_firm}</span>
                         </td>
                       </tr>

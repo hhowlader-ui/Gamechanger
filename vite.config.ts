@@ -5,7 +5,6 @@ export default defineConfig(() => {
   return {
     plugins: [
       react(),
-      // This is our injected custom backend!
       {
         name: 'ch-pdf-proxy',
         configureServer(server) {
@@ -22,13 +21,11 @@ export default defineConfig(() => {
             const auth = Buffer.from(apiKey.trim() + ':').toString('base64');
             let docUrlLocal = '';
 
-            // 1. Fetch metadata
             fetch(targetUrl, { headers: { Authorization: `Basic ${auth}` } })
               .then(r => r.json())
               .then(meta => {
                 docUrlLocal = meta.links?.document;
                 if (!docUrlLocal) throw new Error("No document link found in Companies House.");
-                // 2. Fetch doc and intercept AWS redirect
                 return fetch(docUrlLocal, { headers: { Authorization: `Basic ${auth}` }, redirect: 'manual' });
               })
               .then(docRes => {
@@ -36,7 +33,6 @@ export default defineConfig(() => {
                 if (docRes.status >= 300 && docRes.status < 400) {
                   s3Url = docRes.headers.get('location') || docUrlLocal;
                 }
-                // 3. Download from AWS S3 securely
                 return fetch(s3Url); 
               })
               .then(s3Res => s3Res.arrayBuffer())
@@ -56,7 +52,6 @@ export default defineConfig(() => {
     server: {
       port: 5173,
       proxy: {
-        // Standard proxy for standard Companies House JSON data
         '/api/ch': {
           target: 'https://api.company-information.service.gov.uk',
           changeOrigin: true,
